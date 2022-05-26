@@ -42,12 +42,8 @@ class PostController extends Controller
 
     public function index()
     {
-        if(Auth::user()) {
-            $posts = Post::paginate(20);
-            return view('index', compact('posts'));
-        }
-
-        return view('guests.index');
+        $posts = Post::paginate(20);
+        return response()->json(compact('posts'));
     }
 
     /**

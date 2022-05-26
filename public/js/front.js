@@ -1908,12 +1908,37 @@ module.exports = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
+/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
 //
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
 /* harmony default export */ __webpack_exports__["default"] = ({
-  name: 'App'
+  name: 'App',
+  data: function data() {
+    return {
+      posts: []
+    };
+  },
+  created: function created() {
+    var _this = this;
+
+    axios__WEBPACK_IMPORTED_MODULE_0___default.a.get("".concat(window.location.origin, "/api/posts")).then(function (res) {
+      console.log(res.data.posts.data);
+      _this.posts = res.data.posts.data;
+    });
+  }
 });
 
 /***/ }),
@@ -2401,7 +2426,22 @@ var render = function () {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("h1", [_vm._v("Ciao da vue")])
+  return _c("div", { staticClass: "container" }, [
+    _c(
+      "div",
+      { staticClass: "row row-cols-1 row row-cols-md-2 row-cols-lg-4 g-4" },
+      _vm._l(_vm.posts, function (post, index) {
+        return _c("div", { key: index, staticClass: "col" }, [
+          _c("div", { staticClass: "card h-100" }, [
+            _c("h2", [_vm._v(_vm._s(post.title))]),
+            _vm._v(" "),
+            _c("p", [_vm._v(_vm._s(post.content))]),
+          ]),
+        ])
+      }),
+      0
+    ),
+  ])
 }
 var staticRenderFns = []
 render._withStripped = true
