@@ -1908,8 +1908,6 @@ module.exports = {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! axios */ "./node_modules/axios/index.js");
-/* harmony import */ var axios__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(axios__WEBPACK_IMPORTED_MODULE_0__);
 //
 //
 //
@@ -1923,7 +1921,7 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-
+//
 /* harmony default export */ __webpack_exports__["default"] = ({
   name: 'App',
   data: function data() {
@@ -1934,7 +1932,7 @@ __webpack_require__.r(__webpack_exports__);
   created: function created() {
     var _this = this;
 
-    axios__WEBPACK_IMPORTED_MODULE_0___default.a.get("".concat(window.location.origin, "/api/posts")).then(function (res) {
+    Axios.get("".concat(window.location.origin, "/api/posts")).then(function (res) {
       console.log(res.data.posts.data);
       _this.posts = res.data.posts.data;
     });
@@ -2434,6 +2432,10 @@ var render = function () {
         return _c("div", { key: index, staticClass: "col" }, [
           _c("div", { staticClass: "card h-100" }, [
             _c("h2", [_vm._v(_vm._s(post.title))]),
+            _vm._v(" "),
+            _c("small", { staticClass: "mb-4" }, [
+              _vm._v(_vm._s(post.name + " - " + post.phone)),
+            ]),
             _vm._v(" "),
             _c("p", [_vm._v(_vm._s(post.content))]),
           ]),

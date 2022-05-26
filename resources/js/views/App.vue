@@ -4,6 +4,7 @@
           <div class="col" v-for="(post, index) in posts" :key="index">
           <div class="card h-100">
               <h2>{{post.title}}</h2>
+              <small class="mb-4">{{`${post.name} - ${post.phone}`}}</small>
               <p>{{post.content}}</p>
           </div>
           </div>
@@ -12,8 +13,6 @@
 </template>
 
 <script>
-import Axios from 'axios'
-
 export default {
     name: 'App',
     data(){

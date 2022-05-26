@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Post;
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
@@ -42,7 +43,10 @@ class PostController extends Controller
 
     public function index()
     {
-        $posts = Post::paginate(20);
+        $posts = User::join('posts', 'posts.user_id', '=', 'users.id')
+        ->join('user_infos', 'user_infos.user_id', '=', 'users.id')
+        ->select('posts.*', 'user_infos.phone', 'users.name')
+        ->paginate(20);
         return response()->json(compact('posts'));
     }
 
