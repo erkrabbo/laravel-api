@@ -1,12 +1,12 @@
 <template>
-  <div class="container">
-    <router-view></router-view>
+  <div>
+      <router-link :to="{name: 'index'}">Posts</router-link>
   </div>
 </template>
 
 <script>
 export default {
-    name: 'App'
+
 }
 </script>
 
