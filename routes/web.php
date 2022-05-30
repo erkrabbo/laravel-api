@@ -25,7 +25,9 @@ Route::get('my-posts', 'Admin\PostController@myindex')->name('myindex');
 Route::get('/', 'Admin\HomeController@index')->name('home');
 Route::resource('/post', 'Admin\PostController')->except('index');
 
-
+Route::get("{any?}", function() {
+    return view("guests.index");
+})->where("any", ".*");
 
 
 
