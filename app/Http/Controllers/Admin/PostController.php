@@ -2,67 +2,84 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Tag;
 use App\Post;
+use App\User;
+use App\Category;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
+use Illuminate\Routing\Route;
 use Illuminate\Validation\Rule;
-
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
 
 class PostController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth')->except('index', 'show');
-    }
+    use \App\Traits\searchFilters;
 
-    public $validators = [
-        'title'     => 'required|max:100',
-        'content'   => 'required'
-    ];
-
-    private function getValidators(Post $post) {
+    private function getValidators($model) {
         return [
-            'title'     => 'required|max:100',
-            'slug' => [
+            // 'user_id'   => 'required|exists:App\User,id',
+            'title'         => 'required|max:100',
+            'slug'          => [
                 'required',
-                Rule::unique('posts')->ignore($post),
+                Rule::unique('posts')->ignore($model),
                 'max:100'
             ],
-            'content'   => 'required'
+            'category_id'   => 'required|exists:App\Category,id',
+            'content'       => 'required',
+            'tags'          => 'exists:App\Tag,id',
+            'post_image'    => 'nullable|image'
         ];
     }
 
-    public function slugger(Request $request) {
-        return response()->json([
-            'slug' => Post::generateSlug($request->all()['originalStr'])
-        ]);
-    }
+    public function myindex() {
+        $posts = Post::where('user_id', Auth::user()->id)->paginate(50);
 
+        return view('admin.posts.index', compact('posts'));
+    }
 
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-
-    public function index()
+    public function index(Request $request)
     {
-        $posts = Post::paginate(20);
+        $posts = $this->composeQuery($request);
 
-        return view('index', compact('posts'));
-    }
+        $posts = $posts->paginate(20);
 
-    /**
-     * Display a listing of the resource for the logged user.
-     *
-     * @return \Illuminate\Http\Response
-     */
+        $queries = $request->query();
+        unset($queries['page']);
+        $posts->withPath('?' . http_build_query($queries, '', '&'));
 
-    public function myindex() {
-        $posts = Post::where('user_id', Auth::user()->id)->paginate(20);
+/*
+        $posts = Post::when($request->s, function ($query, $request){
+            return $query->where(function($query) use ($request) {
+                $query->where('title', 'LIKE', "%$request->s%")
+                    ->orWhere('content', 'LIKE', "%$request->s%");
+            });
+        })
+        ->when($request->category, function ($query, $request){
+            return $query->where('category_id', $request->category);
+        })
+        ->when($request->author, function ($query, $request){
+            return $query->where('user_id', $request->author);
+        })
+        ->paginate(20);
+*/
 
-        return view('index', compact('posts'));
+        $categories = Category::all();
+        $users = User::all();
+
+        return view('admin.posts.index', [
+            'posts'         => $posts,
+            'categories'    => $categories,
+            'users'         => $users,
+            'request'       => $request
+        ]);
     }
 
     /**
@@ -72,7 +89,12 @@ class PostController extends Controller
      */
     public function create()
     {
-        return view('admin.post.create');
+        $categories = Category::all();
+        $tags = Tag::all();
+        return view('admin.posts.create', [
+            'categories'    => $categories,
+            'tags'          => $tags
+        ]);
     }
 
     /**
@@ -83,12 +105,44 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        $newPost = new Post($request->all());
-        $request->validate($this->getValidators($newPost));
+        // dd($request->all());
+        $request->validate($this->getValidators(null));
 
-        $post = Post::create($request->all());
+        $data = $request->all();
 
-        return redirect()->route('post.show', $post->slug);
+        $img_path = Storage::put('uploads', $data['post_image']);
+
+        $formData = [
+            'user_id'       => Auth::user()->id,
+            'post_image'    => $img_path
+        ] + $data;
+
+        //dd($formData);
+
+        //preg_match_all('/#([0-9a-zA-Z]*)/', $formData['content'], $tags_from_content);
+        preg_match_all('/#(\S*)\b/', $formData['content'], $tags_from_content);
+
+        // TODO: gestire i tag già presenti nel database (evitare doppioni)
+        $tagIds = [];
+        foreach($tags_from_content[1] as $tag) {
+            $newTag = Tag::create([
+                'name'  => $tag,
+                //'slug'  => Str::slug($tag)
+                'slug'  => $tag
+            ]);
+
+            $tagIds[] = $newTag->id;
+        }
+
+        $formData['tags'] = $tagIds;
+
+        //dd($tags_from_content);
+
+
+        $post = Post::create($formData);
+        $post->tags()->attach($formData['tags']);
+
+        return redirect()->route('admin.posts.show', $post->slug);
     }
 
     /**
@@ -99,7 +153,7 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        return view('show', compact('post'));
+        return view('admin.posts.show', compact('post'));
     }
 
     /**
@@ -111,8 +165,13 @@ class PostController extends Controller
     public function edit(Post $post)
     {
         if (Auth::user()->id !== $post->user_id) abort(403);
-
-        return view('admin.post.edit', compact('post'));
+        $categories = Category::all();
+        $tags = Tag::all();
+        return view('admin.posts.edit', [
+            'post'          => $post,
+            'categories'    => $categories,
+            'tags'          => $tags
+        ]);
     }
 
     /**
@@ -127,10 +186,20 @@ class PostController extends Controller
         if (Auth::user()->id !== $post->user_id) abort(403);
 
         $request->validate($this->getValidators($post));
+        $formData = $request->all();
 
-        $post->update($request->all());
+        if (array_key_exists('post_image', $formData)) {
+            Storage::delete($post->post_image);
+            $img_path = Storage::put('uploads', $formData['post_image']);
+            $formData = [
+                'post_image'    => $img_path
+            ] + $formData;
+        }
 
-        return redirect()->route('post.show', $post->slug);
+        $post->update($formData);
+        if (array_key_exists('tags', $formData)) $post->tags()->sync($formData['tags']);
+
+        return redirect()->route('admin.posts.show', $post->slug);
     }
 
     /**
@@ -143,8 +212,13 @@ class PostController extends Controller
     {
         if (Auth::user()->id !== $post->user_id) abort(403);
 
+        $post->tags()->detach();
+        // $post->tags()->sync([]);
         $post->delete();
 
-       return url()->previous() === route('post.show', $post) ? redirect()->route('myindex') : redirect()->back();
+        if (url()->previous() === route('admin.posts.edit', $post->slug)) {
+            return redirect()->route('admin.home')->with('status', "Post $post->title deleted");
+        }
+        return redirect(url()->previous())->with('status', "Post $post->title deleted");
     }
 }

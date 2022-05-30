@@ -3,51 +3,39 @@
 namespace App\Http\Controllers\Api;
 
 use App\Post;
-use App\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 
 class PostController extends Controller
 {
-    public $validators = [
-        'title'     => 'required|max:100',
-        'content'   => 'required'
-    ];
-
-    private function getValidators(Post $post) {
-        return [
-            'title'     => 'required|max:100',
-            'slug' => [
-                'required',
-                Rule::unique('posts')->ignore($post),
-                'max:100'
-            ],
-            'content'   => 'required'
-        ];
-    }
-
-    public function slugger(Request $request) {
-        return response()->json([
-            'slug' => Post::generateSlug($request->all()['originalStr'])
-        ]);
-    }
-
+    use \App\Traits\searchFilters;
 
     /**
      * Display a listing of the resource.
      *
      * @return \Illuminate\Http\Response
      */
-
-    public function index()
+    public function index(Request $request)
     {
-        $posts = User::join('posts', 'posts.user_id', '=', 'users.id')
-        ->join('user_infos', 'user_infos.user_id', '=', 'users.id')
-        ->select('posts.*', 'user_infos.phone', 'users.name')
-        ->paginate(20);
-        return response()->json(compact('posts'));
+        $attributes = $request->all();
+
+        if (array_key_exists('home', $attributes)) {
+            return response()->json([
+                'success'   => true,
+                'response'  => [
+                    'data'      => Post::inRandomOrder()->limit(4)->get(),
+                ]
+            ]);
+        }
+
+
+        $posts = $this->composeQuery($request);
+
+        $posts = $posts->with(['user', 'category', 'tags'])->paginate(15);
+        return response()->json([
+            'success'    => true,
+            'response'  => $posts,
+        ]);
     }
 
     /**
@@ -77,9 +65,23 @@ class PostController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Post $post)
+    public function show($slug)
     {
-        return response()->json(compact('post'));
+        $post = Post::with(['user', 'category', 'tags'])->where('slug', $slug)->first();
+        if ($post) {
+            $post->img_url = asset('storage/' . $post->post_image);
+            return response()->json([
+                'success'   => true,
+                'response'  => [
+                    'data'      => $post,
+                ]
+            ]);
+        } else {
+            return response()->json([
+                'success'   => false,
+            ]);
+        }
+
     }
 
     /**

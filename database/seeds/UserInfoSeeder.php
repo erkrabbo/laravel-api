@@ -2,8 +2,8 @@
 
 use Illuminate\Database\Seeder;
 use Faker\Generator as Faker;
-use App\UserInfo;
 use App\User;
+use App\UserInfo;
 
 class UserInfoSeeder extends Seeder
 {

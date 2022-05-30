@@ -1,7 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,27 +16,28 @@ use Illuminate\Support\Facades\Auth;
 
 Auth::routes();
 
+Route::middleware('auth')
+    ->namespace('Admin')
+    ->name('admin.')
+    ->prefix('admin')
+    ->group(function () {
+        Route::get('/', 'HomeController@index')->name('home');
+        Route::post('/slugger', 'HomeController@slugger')->name('slugger');
+        Route::get('/posts/my-posts', 'PostController@myindex')->name('posts.myindex');
+        Route::resource('/posts', 'PostController');
+        Route::resource('/categories', 'CategoryController');
+        Route::get('/account', 'UserController@edit')->name('account.edit');
+        Route::post('/account', 'UserController@update')->name('account.update');
+        Route::delete('/account', 'UserController@destroy')->name('account.destroy');
 
-Route::post('/slugger', 'Admin\PostController@slugger')
-->name('slugger');
+        //Route::get('/posts/{post}', 'PostController@show')
+    });
 
-Route::get('my-posts', 'Admin\PostController@myindex')->name('myindex');
 
-Route::get('/', 'Admin\HomeController@index')->name('home');
-Route::resource('/post', 'Admin\PostController')->except('index');
+// Route::get('/', function () {
+//     return view('guests.home');
+// })->name('homepage');
 
 Route::get("{any?}", function() {
-    return view("guests.index");
+    return view("guests.home");
 })->where("any", ".*");
-
-
-
-// Route::middleware('auth')
-// ->namespace('admin')
-// ->prefix('admin')
-// ->group(function () {
-//     Route::resource('/', 'PostController');
-// });
-
-// Route::get('/', 'HomeController@index')
-// ->name('home');

@@ -1,21 +1,36 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-use App\Post;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
+use App\Post;
 
 class HomeController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    /**
+     * Show the application dashboard.
+     *
+     * @return \Illuminate\Contracts\Support\Renderable
+     */
     public function index()
     {
-        if(Auth::user()) {
-            $posts = Post::paginate(20);
-            return view('index', compact('posts'));
-        }
+        return view('admin.home');
+    }
 
-        return view('guests.index');
+    public function slugger(Request $request) {
+        return response()->json([
+            'slug' => Post::generateSlug($request->all()['originalStr'])
+        ]);
     }
 }
